@@ -1,0 +1,125 @@
+##############################################################################
+#
+# FILE
+#   run_analysis.R
+#
+# OVERVIEW
+#   Using data collected from the accelerometers from the Samsung Galaxy S 
+#   smartphone, work with the data and make a clean data set, outputting the
+#   resulting tidy data to a file named "tidy_data.txt".
+#   See README.md for details.
+#
+
+library(dplyr)
+
+
+##############################################################################
+# STEP 0A - Get data
+##############################################################################
+
+# download zip file containing data if it hasn't already been downloaded
+zipUrl <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+zipFile <- "UCI HAR Dataset.zip"
+
+if (!file.exists(zipFile)) {
+  download.file(zipUrl, zipFile, mode = "wb")
+}
+
+# unzip zip file containing data if data directory doesn't already exist
+dataPath <- "UCI HAR Dataset"
+if (!file.exists(dataPath)) {
+  unzip(zipFile)
+}
+
+
+##############################################################################
+# STEP 0B - Read data
+##############################################################################
+
+# 1.1.1  Reading trainings tables:                                         
+x_train <- read.table("C:/Allen Stuff/Training/Coursera/cleaningdata/projdata/train/X_train.txt")
+y_train <- read.table("C:/Allen Stuff/Training/Coursera/cleaningdata/projdata/train/y_train.txt")
+subject_train <- read.table("C:/Allen Stuff/Training/Coursera/cleaningdata/projdata/train/subject_train.txt")                                      
+                                       
+# 1.1.2 Reading testing tables:
+x_test <- read.table("C:/Allen Stuff/Training/Coursera/cleaningdata/projdata/test/X_train.txt")
+y_test <- read.table("C:/Allen Stuff/Training/Coursera/cleaningdata/projdata/test/y_train.txt")
+subject_test <- read.table("C:/Allen Stuff/Training/Coursera/cleaningdata/projdata/test/subject_train.txt") 
+
+# 1.1.3 Reading feature vector:
+features <- read.table("C:/Allen Stuff/Training/Coursera/cleaningdata/projdata/features.txt")
+
+# 1.1.4 Reading activity labels:
+activityLabels = read.table("C:/Allen Stuff/Training/Coursera/cleaningdata/projdata/activity_labels.txt")
+
+# 1.2 Assigning column names:
+
+colnames(x_train) <- features[,2]
+colnames(y_train) <-"activityId"
+colnames(subject_train) <- "subjectId"
+
+colnames(x_test) <- features[,2] 
+colnames(y_test) <- "activityId"
+colnames(subject_test) <- "subjectId"
+
+colnames(activityLabels) <- c('activityId','activityType')
+
+
+#1.3 Merging all data in one set:
+
+mrg_train <- cbind(y_train, subject_train, x_train)
+mrg_test <- cbind(y_test, subject_test, x_test)
+setAllInOne <- rbind(mrg_train, mrg_test)
+
+
+#dim(setAllInOne)
+#[1] 10299   563
+
+#******************************************************************
+#Step 2.-Extracts only the measurements on the mean and standard deviation for each measurement.
+#******************************************************************
+
+#2.1 Reading column names:
+
+colNames <- colnames(setAllInOne)
+
+#2.2 Create vector for defining ID, mean and standard deviation:
+
+mean_and_std <- (grepl("activityId" , colNames) | 
+                   grepl("subjectId" , colNames) | 
+                   grepl("mean.." , colNames) | 
+                   grepl("std.." , colNames) 
+)
+
+#2.3 Making nessesary subset from setAllInOne:
+
+setForMeanAndStd <- setAllInOne[ , mean_and_std == TRUE]
+
+#******************************************************************
+#Step 3. Uses descriptive activity names to name the activities in the data set
+#******************************************************************
+
+setWithActivityNames <- merge(setForMeanAndStd, activityLabels,
+                              by='activityId',
+                              all.x=TRUE)
+
+#******************************************************************
+#Step 4. Appropriately labels the data set with descriptive variable names.
+#******************************************************************
+
+#Done in previous steps, see 1.3,2.2 and 2.3!
+
+#******************************************************************
+#Step 5. From the data set in step 4, creates a second, independent tidy data set with the average of each variable for each activity and each subject.
+#******************************************************************
+
+#5.1 Making a second tidy data set
+
+tidy_data.txt <- aggregate(. ~subjectId + activityId, setWithActivityNames, mean)
+secTidySet <- secTidySet[order(secTidySet$subjectId, secTidySet$activityId),]
+
+#5.2 Writing tidy data set in txt file
+
+write.table(secTidySet, "tidy_data.txt", row.name=FALSE)
+
+               
